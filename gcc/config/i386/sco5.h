@@ -812,7 +812,7 @@ dtors_section ()							\
 
 #undef STARTFILE_SPEC
 #define STARTFILE_SPEC \
- "%{shared: %{!mcoff: crti.o%s}} \
+ "%{!mcoff: crti.o%s} \
   %{!shared:\
    %{!symbolic: \
     %{pg:gcrt.o%s}%{!pg:%{p:mcrt1.o%s}%{!p:crt1.o%s}}}} \
