@@ -37,9 +37,10 @@ float tan  (float);
 float tanh (float);
 #endif
 
-inline float  abs (float  x) { return fabs (x); }
 #if ! _G_MATH_H_INLINES /* hpux and SCO define this in math.h */
+inline float  abs (float  x) { return fabs (x); }
 inline double abs (double x) { return fabs (x); }
+inline long double abs (long double x) { return fabs (x); }
 #endif
 
 #if 0
@@ -69,7 +70,6 @@ long double sqrt (long double);
 long double tan  (long double);
 long double tanh (long double);
 #endif
-inline long double abs (long double x) { return fabs (x); }
 
 } // extern "C++"
 
