@@ -54,7 +54,7 @@ info: $(INFOFILES)
 install-info: info
 	if test ! -f standards.info ; then cd $(srcdir); fi; \
 	for i in standards.info*; do \
-	  $(INSTALL_DATA) $$i $(infodir)/$$i; \
+	  $(INSTALL_DATA) $$i $(DESTDIR)$(infodir)/$$i; \
 	done
 
 dvi: $(DVIFILES)

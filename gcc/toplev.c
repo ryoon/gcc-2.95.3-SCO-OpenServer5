@@ -695,6 +695,8 @@ int flag_schedule_speculative_load = 0;
 int flag_schedule_speculative_load_dangerous = 0;
 #endif  /* HAIFA */
 
+int flag_single_precision_constant;
+
 /* flag_on_branch_count_reg means try to replace add-1,compare,branch tupple
    by a cheaper branch, on a count register. */
 int flag_branch_on_count_reg;
@@ -979,7 +981,9 @@ lang_independent_options f_options[] =
   {"leading-underscore", &flag_leading_underscore, 1,
    "External symbols have a leading underscore" },
   {"ident", &flag_no_ident, 0,
-   "Process #ident directives"}
+   "Process #ident directives"},
+  {"single-precision-constant", &flag_single_precision_constant, 1,
+   "Convert floating point constant to single precision constant"}
 };
 
 #define NUM_ELEM(a)  (sizeof (a) / sizeof ((a)[0]))

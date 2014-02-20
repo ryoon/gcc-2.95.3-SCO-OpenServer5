@@ -297,9 +297,10 @@ fde_split (fde_vector *linear, fde_vector *erratic)
 {
   size_t count = linear->count;
   size_t linear_max = (size_t) -1;
-  size_t previous_max[count];
+  size_t *previous_max;
   size_t i, j;
 
+  previous_max = malloc(sizeof(size_t) * count);
   for (i = 0; i < count; i++)
     {
       for (j = linear_max;
@@ -318,6 +319,7 @@ fde_split (fde_vector *linear, fde_vector *erratic)
     if (linear->array[i] != (fde *) NULL)
       linear->array[j++] = linear->array[i];
   linear->count = j;
+  free (previous_max);
 }
 
 /* This is O(n log(n)).  BSD/OS defines heapsort in stdlib.h, so we must

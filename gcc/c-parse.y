@@ -124,7 +124,7 @@ char *language_string = "GNU C";
 %token SIZEOF ENUM STRUCT UNION IF ELSE WHILE DO FOR SWITCH CASE DEFAULT
 %token BREAK CONTINUE RETURN GOTO ASM_KEYWORD TYPEOF ALIGNOF
 %token ATTRIBUTE EXTENSION LABEL
-%token REALPART IMAGPART
+%token REALPART IMAGPART CHOOSE_EXPR TYPES_COMPATIBLE_P
 
 /* Add precedence rules to solve dangling else s/r conflict */
 %nonassoc IF
@@ -726,6 +726,25 @@ primary:
 		}
 	| primary '(' exprlist ')'   %prec '.'
 		{ $$ = build_function_call ($1, $3); }
+	| CHOOSE_EXPR '(' expr_no_commas ',' expr_no_commas ',' expr_no_commas ')'
+		{
+		  tree c;
+
+		  c = fold($3);
+		  STRIP_NOPS (c);
+		  if (TREE_CODE (c) != INTEGER_CST)
+		    error ("first argument to __builtin_choose_expr not a constant");
+		  $$ = integer_zerop (c) ? $7 : $5;
+		}
+	| TYPES_COMPATIBLE_P '(' typename ',' typename ')'
+		{
+		  tree e1, e2;
+
+		  e1 = TYPE_MAIN_VARIANT (groktypename ($3));
+		  e2 = TYPE_MAIN_VARIANT (groktypename ($5));
+		  $$ = comptypes (e1, e2) ?
+		    build_int_2 (1, 0) : build_int_2 (0, 0);
+		}
 	| primary '[' expr ']'   %prec '.'
 		{ $$ = build_array_ref ($1, $3); }
 	| primary '.' identifier

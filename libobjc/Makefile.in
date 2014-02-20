@@ -271,33 +271,33 @@ install: install-libs copy-headers
 
 install-libs: installdirs
 	-if test -f libobjc.a ; then \
-	  rm -f $(libsubdir)/libobjc.a; \
-	  $(INSTALL_DATA) libobjc.a $(libsubdir)/libobjc.a; \
-	  chmod a-x $(libsubdir)/libobjc.a; \
+	  rm -f $(DESTDIR)$(libsubdir)/libobjc.a; \
+	  $(INSTALL_DATA) libobjc.a $(DESTDIR)$(libsubdir)/libobjc.a; \
+	  chmod a-x $(DESTDIR)$(libsubdir)/libobjc.a; \
 	else true; fi
 	-if test -f libobjc_gc.a ; then \
-	  rm -f $(libsubdir)/libobjc_gc.a; \
-	  $(INSTALL_DATA) libobjc_gc.a $(libsubdir)/libobjc_gc.a; \
-	  chmod a-x $(libsubdir)/libobjc_gc.a; \
+	  rm -f $(DESTDIR)$(libsubdir)/libobjc_gc.a; \
+	  $(INSTALL_DATA) libobjc_gc.a $(DESTDIR)$(libsubdir)/libobjc_gc.a; \
+	  chmod a-x $(DESTDIR)$(libsubdir)/libobjc_gc.a; \
 	else true; fi
 	-if test -f libobjc_s.a ; then \
-	  rm -f $(libsubdir)/libobjc_s.a; \
-	  $(INSTALL_DATA) libobjc_s.a $(libsubdir)/libobjc_s.a; \
-	  chmod a-x $(libsubdir)/libobjc_s.a; \
+	  rm -f $(DESTDIR)$(libsubdir)/libobjc_s.a; \
+	  $(INSTALL_DATA) libobjc_s.a $(DESTDIR)$(libsubdir)/libobjc_s.a; \
+	  chmod a-x $(DESTDIR)$(libsubdir)/libobjc_s.a; \
 	else true; fi
 	  -if test -f libobjc.dll ; then \
-	  rm -f $(bindir)/libobjc.dll; \
-	  $(INSTALL_DATA) libobjc.dll $(bindir)/libobjc.dll; \
+	  rm -f $(DESTDIR)$(bindir)/libobjc.dll; \
+	  $(INSTALL_DATA) libobjc.dll $(DESTDIR)$(bindir)/libobjc.dll; \
 	else true; fi
 
 # Copy Objective C headers to installation include directory.
 copy-headers:
-	-rm -rf $(incinstalldir)/objc
-	-mkdir $(incinstalldir)/objc
+	-rm -rf $(DESTDIR)$(incinstalldir)/objc
+	-mkdir $(DESTDIR)$(incinstalldir)/objc
 	for file in $(OBJC_H); do \
 	  realfile=$(srcdir)/objc/$${file}; \
-	  cp $${realfile} $(incinstalldir)/objc; \
-	  chmod a+r $(incinstalldir)/objc/$${file}; \
+	  cp $${realfile} $(DESTDIR)$(incinstalldir)/objc; \
+	  chmod a+r $(DESTDIR)$(incinstalldir)/objc/$${file}; \
 	done
 
 check uninstall install-strip dist installcheck installdirs:

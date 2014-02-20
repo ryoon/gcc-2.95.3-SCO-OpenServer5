@@ -21,6 +21,8 @@ __asm, ASM_KEYWORD, NORID
 __asm__, ASM_KEYWORD, NORID
 __attribute, ATTRIBUTE, NORID
 __attribute__, ATTRIBUTE, NORID
+__builtin_choose_expr, CHOOSE_EXPR, NORID
+__builtin_types_compatible_p, TYPES_COMPATIBLE_P, NORID
 __complex, TYPESPEC, RID_COMPLEX
 __complex__, TYPESPEC, RID_COMPLEX
 __const, TYPE_QUAL, RID_CONST

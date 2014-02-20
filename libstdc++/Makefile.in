@@ -56,7 +56,7 @@ LIBIBERTY_OBJS = `cat $(LIBIBERTY_DIR)/needed-list` strerror.o
 tooldir = $(exec_prefix)/$(target)
 # This is where the libraries will be installed; note, it will be set
 # at make runtime now. See below at target install.
-INSTALLDIR = $(libdir)
+INSTALLDIR = $(DESTDIR)$(libdir)
 
 MOSTLYCLEAN_JUNK = *stmp-* tlib*.a *.s *.ii stdlist piclist
 CLEAN_JUNK = $(LIBS)
@@ -263,34 +263,34 @@ install:
 	if [ -z "$(MULTISUBDIR)" ]; then \
 	  cd $(srcdir); \
 	  for FILE in $(HEADERS); do \
-	    rm -f $(gxx_include_dir)/$$FILE ; \
+	    rm -f $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
 	    if [ -f stl/$$FILE ]; then \
-	      $(INSTALL_DATA) stl/$$FILE $(gxx_include_dir)/$$FILE ; \
+	      $(INSTALL_DATA) stl/$$FILE $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
 	    else \
-	      $(INSTALL_DATA) $$FILE $(gxx_include_dir)/$$FILE ; \
+	      $(INSTALL_DATA) $$FILE $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
 	    fi ; \
-	    chmod a-x $(gxx_include_dir)/$$FILE ; \
+	    chmod a-x $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
 	  done ; \
 	  for FILE in *.h std/*.h std/*.cc std/*.tcc; do \
-	    rm -f $(gxx_include_dir)/$$FILE ; \
-	    $(INSTALL_DATA) $$FILE $(gxx_include_dir)/$$FILE ; \
-	    chmod a-x $(gxx_include_dir)/$$FILE ; \
+	    rm -f $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
+	    $(INSTALL_DATA) $$FILE $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
+	    chmod a-x $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
 	  done ; \
 	  cd stl; \
 	  for FILE in *.h; do \
-	    rm -f $(gxx_include_dir)/$$FILE ; \
-	    $(INSTALL_DATA) $$FILE $(gxx_include_dir)/$$FILE ; \
-	    chmod a-x $(gxx_include_dir)/$$FILE ; \
+	    rm -f $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
+	    $(INSTALL_DATA) $$FILE $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
+	    chmod a-x $(DESTDIR)$(gxx_include_dir)/$$FILE ; \
 	  done ; \
 	else true ; \
 	fi
 	rootme=`pwd`/ ; export rootme ; \
 	if [ x$(enable_version_specific_runtime_libs) != xyes ]; then \
-	  INSTALLDIR=$(libdir); \
+	  INSTALLDIR=$(DESTDIR)$(libdir); \
 	else \
-	  INSTALLDIR=$(libsubdir); \
+	  INSTALLDIR=$(DESTDIR)$(libsubdir); \
 	fi; \
-	INSTALLLINKDIR=$(libsubdir); \
+	INSTALLLINKDIR=$(DESTDIR)$(libsubdir); \
 	if [ $${INSTALLLINKDIR}$(MULTISUBDIR) = $${INSTALLDIR}$(MULTISUBDIR) ]; then \
 	  RELINSTALLDIR=; \
 	elif [ x$(MULTISUBDIR) = x ]; then \

@@ -1445,8 +1445,8 @@ yylex ()
 	   the integer value (this is always at least as many bits as are
 	   in a target `long long' value, but may be wider).  */
 #define TOTAL_PARTS ((HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR) * 2 + 2)
-	int parts[TOTAL_PARTS];
-	int overflow = 0;
+	unsigned int parts[TOTAL_PARTS];
+	int overflow = 0, numdone = 0;
 
 	enum anon1 { NOT_FLOAT, AFTER_POINT, TOO_MANY_POINTS, AFTER_EXPON}
 	  floatflag = NOT_FLOAT;
@@ -1476,33 +1476,10 @@ yylex ()
 	  }
 
 	/* Read all the digits-and-decimal-points.  */
-
-	while (c == '.'
-	       || (ISALNUM (c) && c != 'l' && c != 'L'
-		   && c != 'u' && c != 'U'
-		   && c != 'i' && c != 'I' && c != 'j' && c != 'J'
-		   && (floatflag == NOT_FLOAT || ((c != 'f') && (c != 'F')))))
+	while (!numdone)
 	  {
 	    if (c == '.')
 	      {
-		if (base == 16 && pedantic)
-		  error ("floating constant may not be in radix 16");
-		if (floatflag == TOO_MANY_POINTS)
-		  /* We have already emitted an error.  Don't need another.  */
-		  ;
-		else if (floatflag == AFTER_POINT || floatflag == AFTER_EXPON)
-		  {
-		    error ("malformed floating constant");
-		    floatflag = TOO_MANY_POINTS;
-		    /* Avoid another error from atof by forcing all characters
-		       from here on to be ignored.  */
-		    p[-1] = '\0';
-		  }
-		else
-		  floatflag = AFTER_POINT;
-
-		if (base == 8)
-		  base = 10;
 		*p++ = c = GETC();
 		/* Accept '.' as the start of a floating-point number
 		   only when it is followed by a digit.
@@ -1526,42 +1503,69 @@ yylex ()
 		    value = '.';
 		    goto done;
 		  }
+		else
+		  {
+		    if (base == 16 && pedantic)
+		      pedwarn ("floating constant should not be in radix 16");
+
+		    if (floatflag == AFTER_POINT)
+		      {
+			error ("too many decimal points in floating constant");
+			p[-1] = '\0';
+			numdone = 1;
+		      }
+		    else if (floatflag == AFTER_EXPON)
+		      {
+			error ("decimal point in exponent - impossible!");
+			p[-1] = '\0';
+			numdone = 1;
+		      }
+		    else
+		      floatflag = AFTER_POINT;
+		    if (base == 8)
+		      base = 10;
+		  }
 	      }
 	    else
 	      {
+		int n;
 		/* It is not a decimal point.
 		   It should be a digit (perhaps a hex digit).  */
 
-		if (ISDIGIT (c))
+		if ((base == 16) && ISXDIGIT (c))
 		  {
-		    c = c - '0';
-		  }
-		else if (base <= 10)
-		  {
-		    if (c == 'e' || c == 'E')
-		      {
-			base = 10;
-			floatflag = AFTER_EXPON;
-			break;   /* start of exponent */
-		      }
-		    error ("nondigits in number and not hexadecimal");
-		    c = 0;
-		  }
-		else if (base == 16 && (c == 'p' || c == 'P'))
-		  {
-		    floatflag = AFTER_EXPON;
-		    break;   /* start of exponent */
-		  }
-		else if (c >= 'a')
-		  {
-		    c = c - 'a' + 10;
+		    if (c >= 'a')
+		      n = c - 'a' + 10;
+		    else if (c >= 'A')
+		      n = c - 'A' + 10;
+		    else if (c >= '0')
+		      n = c - '0';
 		  }
 		else
 		  {
-		    c = c - 'A' + 10;
+		    if (ISDIGIT (c))
+		      {
+			n = c - '0';
+		      }
+		    else if (base <= 10 && (c == 'e' || c == 'E'))
+		      {
+			base = 10;
+			floatflag = AFTER_EXPON;
+			break /* start of exponent */;
+		      }
+		    else if (base == 16 && (c == 'p' || c == 'P'))
+		      {
+			floatflag = AFTER_EXPON;
+			break; /* start of exponent */
+		      }
+		    else
+		      {
+			break; /* start of exponent or next token */
+		      }
 		  }
-		if (c >= largest_digit)
-		  largest_digit = c;
+
+		if (n >= largest_digit)
+		  largest_digit = n;
 		numdigits++;
 
 		for (count = 0; count < TOTAL_PARTS; count++)
@@ -1575,19 +1579,24 @@ yylex ()
 			  &= (1 << HOST_BITS_PER_CHAR) - 1;
 		      }
 		    else
-		      parts[0] += c;
+		      parts[0] += n;
 		  }
 
-		/* If the extra highest-order part ever gets anything in it,
-		   the number is certainly too big.  */
-		if (parts[TOTAL_PARTS - 1] != 0)
-		  overflow = 1;
+		/* If the highest-order part overflows (gets larger than
+		   a host char will hold) then the whole number has 
+		   overflowed.  Record this and truncate the highest-order
+		   part.  */
+		if (parts[TOTAL_PARTS - 1] >> HOST_BITS_PER_CHAR)
+		  {
+		    overflow = 1;
+		    parts[TOTAL_PARTS - 1] &= (1 << HOST_BITS_PER_CHAR) - 1;
+		  }
 
 		if (p >= token_buffer + maxtoken - 3)
 		  p = extend_token_buffer (p);
 		*p++ = (c = GETC());
 	      }
-	  }
+	    }
 
 	if (numdigits == 0)
 	  error ("numeric constant with no digits");

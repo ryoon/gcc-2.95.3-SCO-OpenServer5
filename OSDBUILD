@@ -1,0 +1,5 @@
+NM=gnm CC=gcc CFLAGS="-O6 -march=i586 -mcpu=i686 -fomit-frame-pointer" CXX=g++ CXXFLAGS="-O6 -march=i586 -mcpu=i686 -fomit-frame-pointer" ./configure \
+  --prefix=/usr/gnu \
+  --disable-nls \
+  --with-gnu-as \
+  --host=i586-pc-sco3.2v5.0

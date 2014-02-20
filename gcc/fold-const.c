@@ -530,7 +530,7 @@ div_and_round_double (code, uns,
   encode (den, lden, hden);
 
   /* Special code for when the divisor < BASE.  */
-  if (hden == 0 && lden < (HOST_WIDE_INT) BASE)
+  if (hden == 0 && (unsigned HOST_WIDE_INT)lden < (HOST_WIDE_INT) BASE)
     {
       /* hnum != 0 already checked.  */
       for (i = 4 - 1; i >= 0; i--)
@@ -688,7 +688,7 @@ div_and_round_double (code, uns,
 	     < (unsigned HOST_WIDE_INT) htwice)
 	    || (((unsigned HOST_WIDE_INT) habs_den
 		 == (unsigned HOST_WIDE_INT) htwice)
-		&& ((HOST_WIDE_INT unsigned) labs_den
+		&& ((unsigned HOST_WIDE_INT) labs_den
 		    < (unsigned HOST_WIDE_INT) ltwice)))
 	  {
 	    if (*hquo < 0)

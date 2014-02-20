@@ -3139,11 +3139,13 @@ identifier_typedecl_value (node)
 struct pf_args 
 {
   /* Input */
-  /* I/O */
+  int base;
   char *p;
+  /* I/O */
   int c;
   int imag;
   tree type;
+  int conversion_errno;
   /* Output */
   REAL_VALUE_TYPE value;
 };
@@ -3211,7 +3213,12 @@ parse_float (data)
 	error ("both `f' and `l' in floating constant");
       
       args->type = float_type_node;
-      args->value = REAL_VALUE_ATOF (copy, TYPE_MODE (args->type));
+      errno = 0;
+      if (args->base == 16)
+	args->value = REAL_VALUE_HTOF (copy, TYPE_MODE (args->type));
+      else
+	args->value = REAL_VALUE_ATOF (copy, TYPE_MODE (args->type));
+      args->conversion_errno = errno;
       /* A diagnostic is required here by some ANSI C testsuites.
 	 This is not pedwarn, become some people don't want
 	 an error for this.  */
@@ -3221,13 +3228,23 @@ parse_float (data)
   else if (lflag)
     {
       args->type = long_double_type_node;
-      args->value = REAL_VALUE_ATOF (copy, TYPE_MODE (args->type));
+      errno = 0;
+      if (args->base == 16)
+	args->value = REAL_VALUE_HTOF (copy, TYPE_MODE (args->type));
+      else
+	args->value = REAL_VALUE_ATOF (copy, TYPE_MODE (args->type));
+      args->conversion_errno = errno;
       if (REAL_VALUE_ISINF (args->value) && pedantic)
 	warning ("floating point number exceeds range of `long double'");
     }
   else
     {
-      args->value = REAL_VALUE_ATOF (copy, TYPE_MODE (args->type));
+      errno = 0;
+      if (args->base == 16)
+	args->value = REAL_VALUE_HTOF (copy, TYPE_MODE (args->type));
+      else
+	args->value = REAL_VALUE_ATOF (copy, TYPE_MODE (args->type));
+      args->conversion_errno = errno;
       if (REAL_VALUE_ISINF (args->value) && pedantic)
 	warning ("floating point number exceeds range of `double'");
     }
@@ -3614,11 +3631,11 @@ real_yylex ()
 	   the integer value (this is always at least as many bits as are
 	   in a target `long long' value, but may be wider).  */
 #define TOTAL_PARTS ((HOST_BITS_PER_WIDE_INT / HOST_BITS_PER_CHAR) * 2 + 2)
-	int parts[TOTAL_PARTS];
-	int overflow = 0;
+	unsigned int parts[TOTAL_PARTS];
+	int overflow = 0, numdone = 0;
 
-	enum anon1 { NOT_FLOAT, AFTER_POINT, TOO_MANY_POINTS} floatflag
-	  = NOT_FLOAT;
+	enum anon1 { NOT_FLOAT, AFTER_POINT, TOO_MANY_POINTS, AFTER_EXPON}
+       	  floatflag = NOT_FLOAT;
 
 	for (count = 0; count < TOTAL_PARTS; count++)
 	  parts[count] = 0;
@@ -3645,33 +3662,11 @@ real_yylex ()
 	  }
 
 	/* Read all the digits-and-decimal-points.  */
-
-	while (c == '.'
-	       || (ISALNUM (c) && (c != 'l') && (c != 'L')
-		   && (c != 'u') && (c != 'U')
-		   && c != 'i' && c != 'I' && c != 'j' && c != 'J'
-		   && (floatflag == NOT_FLOAT || ((c != 'f') && (c != 'F')))))
+	while (!numdone)
 	  {
 	    if (c == '.')
 	      {
-		if (base == 16)
-		  error ("floating constant may not be in radix 16");
-		if (floatflag == TOO_MANY_POINTS)
-		  /* We have already emitted an error.  Don't need another.  */
-		  ;
-		else if (floatflag == AFTER_POINT)
-		  {
-		    error ("malformed floating constant");
-		    floatflag = TOO_MANY_POINTS;
-		    /* Avoid another error from atof by forcing all characters
-		       from here on to be ignored.  */
-		    p[-1] = '\0';
-		  }
-		else
-		  floatflag = AFTER_POINT;
-
-		base = 10;
-		*p++ = c = getch ();
+		*p++ = c = getch();
 		/* Accept '.' as the start of a floating-point number
 		   only when it is followed by a digit.
 		   Otherwise, unread the following non-digit
@@ -3680,52 +3675,83 @@ real_yylex ()
 		  {
 		    if (c == '.')
 		      {
-			c = getch ();
+			c = getch();
 			if (c == '.')
 			  {
-			    *p++ = '.';
-			    *p = '\0';
-			    value = ELLIPSIS;
-			    goto done;
+			    *p++ = c;
+			    *p = 0;
+			    return ELLIPSIS;
 			  }
 			error ("parse error at `..'");
 		      }
-		    nextchar = c;
-		    token_buffer[1] = '\0';
+		    put_back (c);
+		    token_buffer[1] = 0;
 		    value = '.';
 		    goto done;
+		  }
+		else
+		  {
+		    if (base == 16 && pedantic)
+		      pedwarn ("floating constant should not be in radix 16");
+
+		    if (floatflag == AFTER_POINT)
+		      {
+			error ("too many decimal points in floating constant");
+			p[-1] = '\0';
+			numdone = 1;
+		      }
+		    else if (floatflag == AFTER_EXPON)
+		      {
+			error ("decimal point in exponent - impossible!");
+			p[-1] = '\0';
+			numdone = 1;
+		      }
+		    else
+		      floatflag = AFTER_POINT;
+		    if (base == 8)
+		      base = 10;
 		  }
 	      }
 	    else
 	      {
+		int n;
 		/* It is not a decimal point.
 		   It should be a digit (perhaps a hex digit).  */
 
-		if (ISDIGIT (c))
+		if ((base == 16) && ISXDIGIT (c))
 		  {
-		    c = c - '0';
-		  }
-		else if (base <= 10)
-		  {
-		    if (c == 'e' || c == 'E')
-		      {
-			base = 10;
-			floatflag = AFTER_POINT;
-			break;   /* start of exponent */
-		      }
-		    error ("nondigits in number and not hexadecimal");
-		    c = 0;
-		  }
-		else if (c >= 'a')
-		  {
-		    c = c - 'a' + 10;
+		    if (c >= 'a')
+		      n = c - 'a' + 10;
+		    else if (c >= 'A')
+		      n = c - 'A' + 10;
+		    else if (c >= '0')
+		      n = c - '0';
 		  }
 		else
 		  {
-		    c = c - 'A' + 10;
+		    if (ISDIGIT (c))
+		      {
+			n = c - '0';
+		      }
+		    else if (base <= 10 && (c == 'e' || c == 'E'))
+		      {
+			base = 10;
+			floatflag = AFTER_EXPON;
+			break /* start of exponent */;
+		      }
+		    else if (base == 16 && (c == 'p' || c == 'P'))
+		      {
+			floatflag = AFTER_EXPON;
+			break; /* start of exponent */
+		      }
+		    else
+		      {
+			break; /* start of exponent or next token */
+		      }
 		  }
-		if (c >= largest_digit)
-		  largest_digit = c;
+
+		if (n >= largest_digit)
+		  largest_digit = n;
 		numdigits++;
 
 		for (count = 0; count < TOTAL_PARTS; count++)
@@ -3739,19 +3765,24 @@ real_yylex ()
 			  &= (1 << HOST_BITS_PER_CHAR) - 1;
 		      }
 		    else
-		      parts[0] += c;
+		      parts[0] += n;
 		  }
 
-		/* If the extra highest-order part ever gets anything in it,
-		   the number is certainly too big.  */
-		if (parts[TOTAL_PARTS - 1] != 0)
-		  overflow = 1;
+		/* If the highest-order part overflows (gets larger than
+		   a host char will hold) then the whole number has 
+		   overflowed.  Record this and truncate the highest-order
+		   part.  */
+		if (parts[TOTAL_PARTS - 1] >> HOST_BITS_PER_CHAR)
+		  {
+		    overflow = 1;
+		    parts[TOTAL_PARTS - 1] &= (1 << HOST_BITS_PER_CHAR) - 1;
+		  }
 
 		if (p >= token_buffer + maxtoken - 3)
 		  p = extend_token_buffer (p);
-		*p++ = (c = getch ());
+		*p++ = (c = getch());
 	      }
-	  }
+	    }
 
 	if (numdigits == 0)
 	  error ("numeric constant with no digits");
@@ -3765,44 +3796,49 @@ real_yylex ()
 	if (floatflag != NOT_FLOAT)
 	  {
 	    tree type = double_type_node;
-	    int exceeds_double = 0;
 	    int imag = 0;
+	    int conversion_errno = 0;
 	    REAL_VALUE_TYPE value;
 	    struct pf_args args;
 
 	    /* Read explicit exponent if any, and put it in tokenbuf.  */
 
-	    if ((c == 'e') || (c == 'E'))
+	    if ((base == 10 && ((c == 'e') || (c == 'E')))
+		|| (base == 16 && (c == 'p' || c == 'P')))
 	      {
 		if (p >= token_buffer + maxtoken - 3)
 		  p = extend_token_buffer (p);
 		*p++ = c;
-		c = getch ();
+		c = getch();
 		if ((c == '+') || (c == '-'))
 		  {
 		    *p++ = c;
-		    c = getch ();
+		    c = getch();
 		  }
+		/* Exponent is decimal, even if string is a hex float.  */
 		if (! ISDIGIT (c))
 		  error ("floating constant exponent has no digits");
-	        while (ISDIGIT (c))
+		while (ISDIGIT (c))
 		  {
 		    if (p >= token_buffer + maxtoken - 3)
 		      p = extend_token_buffer (p);
 		    *p++ = c;
-		    c = getch ();
+		    c = getch();
 		  }
 	      }
+	    if (base == 16 && floatflag != AFTER_EXPON)
+	      error ("hexadecimal floating constant has no exponent");
 
 	    *p = 0;
-	    errno = 0;
 
 	    /* Setup input for parse_float() */
+	    args.base = base;
 	    args.p = p;
 	    args.c = c;
 	    args.imag = imag;
 	    args.type = type;
-	    
+	    args.conversion_errno = conversion_errno;
+
 	    /* Convert string to a double, checking for overflow.  */
 	    if (do_float_handler (parse_float, (PTR) &args))
 	      {
@@ -3817,24 +3853,18 @@ real_yylex ()
 	      }
 
 	    /* Receive output from parse_float() */
-	    p = args.p;
 	    c = args.c;
 	    imag = args.imag;
 	    type = args.type;
+	    conversion_errno = args.conversion_errno;
 	    
 #ifdef ERANGE
-	    if (errno == ERANGE && pedantic)
-	      {
-  		/* ERANGE is also reported for underflow,
-  		   so test the value to distinguish overflow from that.  */
-		if (REAL_VALUES_LESS (dconst1, value)
-		    || REAL_VALUES_LESS (value, dconstm1))
-		  {
-		    pedwarn ("floating point number exceeds range of `%s'",
-			     IDENTIFIER_POINTER (TYPE_IDENTIFIER (type)));
-		    exceeds_double = 1;
-		  }
-	      }
+	    /* ERANGE is also reported for underflow,
+	       so test the value to distinguish overflow from that.  */
+	    if (conversion_errno == ERANGE && pedantic
+		&& (REAL_VALUES_LESS (dconst1, value)
+		    || REAL_VALUES_LESS (value, dconstm1)))
+	      warning ("floating point number exceeds range of `double'");
 #endif
 
 	    /* If the result is not a number, assume it must have been
@@ -3846,7 +3876,7 @@ real_yylex ()
 	    /* Create a node with determined type and value.  */
 	    if (imag)
 	      yylval.ttype = build_complex (NULL_TREE,
-					    cp_convert (type, integer_zero_node),
+					    convert (type, integer_zero_node),
 					    build_real (type, value));
 	    else
 	      yylval.ttype = build_real (type, value);

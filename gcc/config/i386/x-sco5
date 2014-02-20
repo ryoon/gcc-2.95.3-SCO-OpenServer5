@@ -1,7 +1,7 @@
 RANLIB = :
 RANLIB_TEST = false
-CC = cc
-OLDCC = cc
+CC = cc -belf
+OLDCC = cc -belf
 CCLIBFLAGS =
 # We avoid the ALLOCA in -lPW becuase it gives us an evil index()
 ALLOCA = alloca.o

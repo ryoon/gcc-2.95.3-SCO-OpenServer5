@@ -312,7 +312,7 @@ fi
 # OpenServer's math.h declares abs as inline int abs...  Unfortunately,
 # we blow over that one (with C++ linkage) and stick a new one in stdlib.h
 # with C linkage.   So we eat the one out of math.h.
-file=math.h
+for file in math.h ansi/math.h posix/math.h xpg4/math.h xpg4v2/math.h xpg4plus/math.h ods_30_compat/math.h oldstyle/math.h; do
 base=`basename $file`
 if [ -r ${LIB}/$file ]; then
   file_to_fix=${LIB}/$file
@@ -334,6 +334,16 @@ if [ \! -z "$file_to_fix" ]; then
 #undef exception\
 #endif' \
       -e 's@inline int abs(int [a-z][a-z]*) {.*}@extern "C" int abs(int);@' \
+      -e '/#define.*__fp_class(a) \\/i\
+#ifndef __GNUC__' \
+      -e '/.*__builtin_generic/a\
+#else\
+#define __fp_class(a) \\\
+  __builtin_choose_expr(__builtin_types_compatible_p(typeof(a),long double),\\\
+   __fpclassifyl(a), \\\
+    __builtin_choose_expr(__builtin_types_compatible_p(typeof(a), float), \\\
+      __fpclassifyf(a),__fpclassify(a)))\
+#endif' \
  $file_to_fix > /tmp/$base
   if cmp $file_to_fix /tmp/$base >/dev/null 2>&1; then \
     true
@@ -345,6 +355,7 @@ if [ \! -z "$file_to_fix" ]; then
   fi
   rm -f /tmp/$base
 fi
+done
 
 #
 # Also, the static functions lstat() and fchmod() in <sys/stat.h> 

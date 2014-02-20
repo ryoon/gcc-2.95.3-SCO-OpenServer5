@@ -3728,7 +3728,7 @@ for machine in $build $host $target; do
 		else
 			tmake_file=i386/t-sco5
 		fi
-		extra_parts="crti.o crtbegin.o crtend.o crtbeginS.o crtendS.o"
+		extra_parts="crtbegin.o crtend.o"
 		;;
 	i[34567]86-*-sco3.2v4*) 	# 80386 running SCO 3.2v4 system
 		xm_file="${xm_file} i386/xm-sco.h"
@@ -7082,7 +7082,7 @@ if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-lintl  $LIBS"
+LIBS="-lgnuintl  $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 7088 "configure"
 #include "confdefs.h"
@@ -7122,7 +7122,7 @@ if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
   echo $ac_n "(cached) $ac_c" 1>&6
 else
   ac_save_LIBS="$LIBS"
-LIBS="-lintl  $LIBS"
+LIBS="-lgnuintl  $LIBS"
 cat > conftest.$ac_ext <<EOF
 #line 7128 "configure"
 #include "confdefs.h"
